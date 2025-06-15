@@ -98,26 +98,28 @@ def is_valid_ai_options(ai_options) -> bool:
 
 
 def resolve_final_options(
-    ai_options: List[str] = None, text: str = "", config: Dict[str, Any] = None
+    ai_options: List[str] = None, text: str = "", config: Dict[str, Any] = None, language: str = None
 ) -> List[str]:
     """
-    V4.0 简化的两层回退逻辑
-    V4.0 Simplified two-layer fallback logic
+    V4.0 简化的两层回退逻辑 - 支持语言感知
+    V4.0 Simplified two-layer fallback logic - Language-aware
 
     V4.0 简化改进：
     - 移除规则引擎层，简化为AI选项 + 用户自定义选项
     - 保持严格的边界控制
     - 提高性能和可维护性
+    - 新增：支持语言感知的后备选项
 
     严格的边界规则：
     1. 第一层：AI选项优先，有效时完全阻断后续层级
-    2. 第二层：用户自定义选项，仅在AI选项无效时使用
+    2. 第二层：用户自定义选项，仅在AI选项无效时使用（支持语言感知）
     3. 每一层都有严格的有效性检查，确保边界清晰
 
     Args:
         ai_options: AI提供的预定义选项
         text: 文本内容（保留参数以兼容现有调用）
         config: 配置字典，包含用户自定义的后备选项
+        language: 语言代码 ("zh_CN" 或 "en_US")，如果为None则尝试自动检测
 
     Returns:
         List[str]: 最终的选项列表
@@ -125,12 +127,26 @@ def resolve_final_options(
     # 导入配置管理器（避免循环导入）
     from .config_manager import (
         get_config,
-        safe_get_fallback_options,
+        get_fallback_options_by_language,
         get_custom_options_enabled,
     )
 
     if config is None:
         config = get_config()
+
+    # 语言检测逻辑
+    if language is None:
+        # 尝试从配置中检测语言（如果有UI设置）
+        try:
+            from PySide6.QtCore import QSettings
+            settings = QSettings("InteractiveFeedback", "FeedbackUI")
+            language = settings.value("ui/language", "zh_CN")
+        except ImportError:
+            # 如果没有PySide6，默认使用中文
+            language = "zh_CN"
+        except Exception:
+            # 其他异常，默认使用中文
+            language = "zh_CN"
 
     # 第一层：AI选项优先 - 严格边界检查
     if is_valid_ai_options(ai_options):
@@ -143,11 +159,12 @@ def resolve_final_options(
         if valid_ai_options:  # 双重检查确保有效性
             return valid_ai_options
 
-    # 第二层：用户自定义后备选项 - 可控制启用/禁用
+    # 第二层：用户自定义后备选项 - 可控制启用/禁用，支持语言感知
     custom_options_enabled = get_custom_options_enabled(config)
     if custom_options_enabled:
         try:
-            fallback_options = safe_get_fallback_options(config)
+            # 使用语言感知的后备选项获取函数
+            fallback_options = get_fallback_options_by_language(config, language)
             if fallback_options and len(fallback_options) > 0:
                 return fallback_options
         except Exception:

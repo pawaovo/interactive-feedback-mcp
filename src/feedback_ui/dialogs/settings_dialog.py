@@ -95,7 +95,30 @@ class AudioSettingsDialog(QDialog):
     def __init__(self, settings_manager, parent=None):
         super().__init__(parent)
         self.settings_manager = settings_manager
-        self.setWindowTitle("音频设置")
+        
+        # 双语文本映射
+        self.texts = {
+            "title": {"zh_CN": "音频设置", "en_US": "Audio Settings"},
+            "enable_audio": {"zh_CN": "启用提示音", "en_US": "Enable Notification Sound"},
+            "volume_label": {"zh_CN": "音量:", "en_US": "Volume:"},
+            "custom_audio_file": {"zh_CN": "自定义音频文件:", "en_US": "Custom Audio File:"},
+            "browse_button": {"zh_CN": "浏览...", "en_US": "Browse..."},
+            "test_button": {"zh_CN": "测试", "en_US": "Test"},
+            "ok_button": {"zh_CN": "确定", "en_US": "OK"},
+            "cancel_button": {"zh_CN": "取消", "en_US": "Cancel"},
+            "select_audio_file": {"zh_CN": "选择音频文件", "en_US": "Select Audio File"},
+            "audio_files_filter": {
+                "zh_CN": "音频文件 (*.wav *.mp3 *.ogg *.flac *.aac);;WAV文件 (*.wav);;MP3文件 (*.mp3);;所有文件 (*.*)",
+                "en_US": "Audio Files (*.wav *.mp3 *.ogg *.flac *.aac);;WAV Files (*.wav);;MP3 Files (*.mp3);;All Files (*.*)"
+            },
+            "audio_test_title": {"zh_CN": "音频测试", "en_US": "Audio Test"},
+            "audio_test_failed": {"zh_CN": "音频播放失败，请检查文件路径和格式", "en_US": "Audio playback failed, please check file path and format"}
+        }
+        
+        # 获取当前语言
+        self.current_language = self.settings_manager.get_current_language()
+        
+        self.setWindowTitle(self.texts["title"][self.current_language])
         self.setModal(True)
         self.resize(400, 300)
 
@@ -117,13 +140,15 @@ class AudioSettingsDialog(QDialog):
 
         current_audio_enabled = self.settings_manager.get_audio_enabled()
         self.enable_audio_radio = create_toggle_radio_button(
-            "启用提示音", current_audio_enabled, self._on_audio_enabled_changed
+            self.texts["enable_audio"][self.current_language], 
+            current_audio_enabled, 
+            self._on_audio_enabled_changed
         )
         layout.addWidget(self.enable_audio_radio)
 
         # 音量控制
         volume_layout = QHBoxLayout()
-        volume_label = QLabel("音量:")
+        self.volume_label = QLabel(self.texts["volume_label"][self.current_language])
 
         self.audio_volume_slider = QSlider()
         from PySide6.QtCore import Qt
@@ -138,14 +163,14 @@ class AudioSettingsDialog(QDialog):
         self.audio_volume_value.setFixedWidth(45)  # 增加宽度以完全显示"100%"
         self.audio_volume_value.setAlignment(Qt.AlignmentFlag.AlignCenter)  # 居中对齐
 
-        volume_layout.addWidget(volume_label)
+        volume_layout.addWidget(self.volume_label)
         volume_layout.addWidget(self.audio_volume_slider)
         volume_layout.addWidget(self.audio_volume_value)
         layout.addLayout(volume_layout)
 
         # 自定义音频文件
         file_layout = QHBoxLayout()
-        file_label = QLabel("自定义音频文件:")
+        self.file_label = QLabel(self.texts["custom_audio_file"][self.current_language])
 
         self.custom_sound_edit = QLineEdit()
         current_sound_path = self.settings_manager.get_notification_sound_path()
@@ -153,28 +178,28 @@ class AudioSettingsDialog(QDialog):
             self.custom_sound_edit.setText(current_sound_path)
         self.custom_sound_edit.textChanged.connect(self._on_custom_sound_changed)
 
-        browse_button = QPushButton("浏览...")
-        browse_button.clicked.connect(self._browse_sound_file)
+        self.browse_button = QPushButton(self.texts["browse_button"][self.current_language])
+        self.browse_button.clicked.connect(self._browse_sound_file)
 
-        test_button = QPushButton("测试")
-        test_button.clicked.connect(self._test_sound)
+        self.test_button = QPushButton(self.texts["test_button"][self.current_language])
+        self.test_button.clicked.connect(self._test_sound)
 
-        file_layout.addWidget(file_label)
+        file_layout.addWidget(self.file_label)
         file_layout.addWidget(self.custom_sound_edit)
-        file_layout.addWidget(browse_button)
-        file_layout.addWidget(test_button)
+        file_layout.addWidget(self.browse_button)
+        file_layout.addWidget(self.test_button)
         layout.addLayout(file_layout)
 
         # 按钮
         button_layout = QHBoxLayout()
-        ok_button = QPushButton("确定")
-        ok_button.clicked.connect(self.accept)
-        cancel_button = QPushButton("取消")
-        cancel_button.clicked.connect(self.reject)
+        self.ok_button = QPushButton(self.texts["ok_button"][self.current_language])
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton(self.texts["cancel_button"][self.current_language])
+        self.cancel_button.clicked.connect(self.reject)
 
-        button_layout.addWidget(ok_button)
+        button_layout.addWidget(self.ok_button)
         button_layout.addStretch()
-        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
 
     def _on_audio_enabled_changed(self, enabled):
@@ -191,9 +216,9 @@ class AudioSettingsDialog(QDialog):
     def _browse_sound_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "选择音频文件",
+            self.texts["select_audio_file"][self.current_language],
             "",
-            "音频文件 (*.wav *.mp3 *.ogg *.flac *.aac);;WAV文件 (*.wav);;MP3文件 (*.mp3);;所有文件 (*.*)",
+            self.texts["audio_files_filter"][self.current_language],
         )
         if file_path:
             self.custom_sound_edit.setText(file_path)
@@ -211,8 +236,43 @@ class AudioSettingsDialog(QDialog):
                 from PySide6.QtWidgets import QMessageBox
 
                 QMessageBox.warning(
-                    self, "音频测试", "音频播放失败，请检查文件路径和格式"
+                    self, self.texts["audio_test_title"][self.current_language], self.texts["audio_test_failed"][self.current_language]
                 )
+
+    def changeEvent(self, event: QEvent):
+        """处理语言变化事件"""
+        if event.type() == QEvent.Type.LanguageChange:
+            self._update_texts()
+        super().changeEvent(event)
+
+    def _update_texts(self):
+        """根据当前语言更新显示的文本内容"""
+        self.current_language = self.settings_manager.get_current_language()
+        
+        # 更新窗口标题
+        self.setWindowTitle(self.texts["title"][self.current_language])
+        
+        # 更新控件文本
+        if hasattr(self, "enable_audio_radio"):
+            self.enable_audio_radio.setText(self.texts["enable_audio"][self.current_language])
+        
+        if hasattr(self, "volume_label"):
+            self.volume_label.setText(self.texts["volume_label"][self.current_language])
+            
+        if hasattr(self, "file_label"):
+            self.file_label.setText(self.texts["custom_audio_file"][self.current_language])
+            
+        if hasattr(self, "browse_button"):
+            self.browse_button.setText(self.texts["browse_button"][self.current_language])
+            
+        if hasattr(self, "test_button"):
+            self.test_button.setText(self.texts["test_button"][self.current_language])
+            
+        if hasattr(self, "ok_button"):
+            self.ok_button.setText(self.texts["ok_button"][self.current_language])
+            
+        if hasattr(self, "cancel_button"):
+            self.cancel_button.setText(self.texts["cancel_button"][self.current_language])
 
 
 class OptimizationSettingsDialog(QDialog):
@@ -220,7 +280,44 @@ class OptimizationSettingsDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("输入表达优化")
+        
+        # 双语文本映射
+        self.texts = {
+            "title": {"zh_CN": "输入表达优化", "en_US": "Input Expression Optimization"},
+            "enable_optimization": {"zh_CN": "启用优化功能", "en_US": "Enable Optimization Feature"},
+            "llm_provider_group": {"zh_CN": "LLM提供商", "en_US": "LLM Provider"},
+            "openai": {"zh_CN": "OpenAI", "en_US": "OpenAI"},
+            "gemini": {"zh_CN": "Google Gemini", "en_US": "Google Gemini"},
+            "deepseek": {"zh_CN": "DeepSeek", "en_US": "DeepSeek"},
+            "volcengine": {"zh_CN": "火山引擎", "en_US": "VolcEngine"},
+            "api_key_label": {"zh_CN": "API密钥:", "en_US": "API Key:"},
+            "api_key_placeholder": {"zh_CN": "请输入API密钥", "en_US": "Please enter API key"},
+            "test_connection": {"zh_CN": "测试连接", "en_US": "Test Connection"},
+            "prompt_settings_group": {"zh_CN": "提示词设置", "en_US": "Prompt Settings"},
+            "optimize_prompt_label": {"zh_CN": "优化提示词:", "en_US": "Optimization Prompt:"},
+            "optimize_prompt_placeholder": {"zh_CN": "输入自定义优化提示词...", "en_US": "Enter custom optimization prompt..."},
+            "reinforce_prompt_label": {"zh_CN": "强化提示词:", "en_US": "Reinforcement Prompt:"},
+            "reinforce_prompt_placeholder": {"zh_CN": "输入自定义强化提示词...", "en_US": "Enter custom reinforcement prompt..."},
+            "ok_button": {"zh_CN": "确定", "en_US": "OK"},
+            "cancel_button": {"zh_CN": "取消", "en_US": "Cancel"},
+            # 测试连接相关文本
+            "testing_connection": {"zh_CN": "正在测试连接...", "en_US": "Testing connection..."},
+            "cancel_test": {"zh_CN": "取消", "en_US": "Cancel"},
+            "connection_test_title": {"zh_CN": "API连接测试", "en_US": "API Connection Test"},
+            "test_result_title": {"zh_CN": "测试结果", "en_US": "Test Result"},
+            "connection_success": {"zh_CN": "✅ 连接成功！", "en_US": "✅ Connection successful!"},
+            "connection_failed": {"zh_CN": "❌ 连接失败: {0}", "en_US": "❌ Connection failed: {0}"},
+            "test_error_title": {"zh_CN": "测试错误", "en_US": "Test Error"},
+            "test_failed": {"zh_CN": "❌ 测试失败: {0}", "en_US": "❌ Test failed: {0}"},
+            "config_unavailable": {"zh_CN": "无法获取配置信息", "en_US": "Unable to get configuration information"}
+        }
+        
+        # 获取当前语言
+        from ..utils.settings_manager import SettingsManager
+        self.settings_manager = SettingsManager()
+        self.current_language = self.settings_manager.get_current_language()
+        
+        self.setWindowTitle(self.texts["title"][self.current_language])
         self.setModal(True)
         self.resize(500, 400)
         self._setup_ui()
@@ -245,20 +342,20 @@ class OptimizationSettingsDialog(QDialog):
         from ..utils.ui_factory import create_toggle_radio_button
 
         self.enable_optimization_radio = create_toggle_radio_button(
-            "启用优化功能",
+            self.texts["enable_optimization"][self.current_language],
             optimizer_config.get("enabled", False),
             self._on_optimization_toggled,
         )
         layout.addWidget(self.enable_optimization_radio)
 
         # LLM提供商选择
-        provider_group = QGroupBox("LLM提供商")
+        self.provider_group = QGroupBox(self.texts["llm_provider_group"][self.current_language])
         provider_layout = QHBoxLayout()
 
-        self.openai_radio = QRadioButton("OpenAI")
-        self.gemini_radio = QRadioButton("Google Gemini")
-        self.deepseek_radio = QRadioButton("DeepSeek")
-        self.huoshan_radio = QRadioButton("火山引擎")
+        self.openai_radio = QRadioButton(self.texts["openai"][self.current_language])
+        self.gemini_radio = QRadioButton(self.texts["gemini"][self.current_language])
+        self.deepseek_radio = QRadioButton(self.texts["deepseek"][self.current_language])
+        self.huoshan_radio = QRadioButton(self.texts["volcengine"][self.current_language])
 
         # 设置当前选中的提供商
         active_provider = optimizer_config.get("active_provider", "openai")
@@ -289,19 +386,19 @@ class OptimizationSettingsDialog(QDialog):
         provider_layout.addWidget(self.gemini_radio)
         provider_layout.addWidget(self.deepseek_radio)
         provider_layout.addWidget(self.huoshan_radio)
-        provider_group.setLayout(provider_layout)
-        layout.addWidget(provider_group)
+        self.provider_group.setLayout(provider_layout)
+        layout.addWidget(self.provider_group)
 
         # API密钥输入
         api_layout = QHBoxLayout()
-        api_label = QLabel("API密钥:")
+        self.api_label = QLabel(self.texts["api_key_label"][self.current_language])
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        self.api_key_edit.setPlaceholderText("请输入API密钥")
+        self.api_key_edit.setPlaceholderText(self.texts["api_key_placeholder"][self.current_language])
         self.api_key_edit.textChanged.connect(self._on_api_key_changed)
 
-        test_button = QPushButton("测试连接")
-        test_button.clicked.connect(self._test_api_connection)
+        self.test_button = QPushButton(self.texts["test_connection"][self.current_language])
+        self.test_button.clicked.connect(self._test_api_connection)
 
         # 加载当前API密钥
         current_provider_config = optimizer_config.get("providers", {}).get(
@@ -311,13 +408,13 @@ class OptimizationSettingsDialog(QDialog):
         if current_api_key and not current_api_key.startswith("YOUR_"):
             self.api_key_edit.setText(current_api_key)
 
-        api_layout.addWidget(api_label)
+        api_layout.addWidget(self.api_label)
         api_layout.addWidget(self.api_key_edit)
-        api_layout.addWidget(test_button)
+        api_layout.addWidget(self.test_button)
         layout.addLayout(api_layout)
 
         # 提示词自定义区域
-        prompts_group = QGroupBox("提示词设置")
+        self.prompts_group = QGroupBox(self.texts["prompt_settings_group"][self.current_language])
         prompts_layout = QVBoxLayout()
 
         # 获取当前提示词配置
@@ -325,27 +422,27 @@ class OptimizationSettingsDialog(QDialog):
 
         # 优化提示词设置
         optimize_layout = QHBoxLayout()
-        optimize_label = QLabel("优化提示词:")
-        optimize_label.setFixedWidth(80)
+        self.optimize_label = QLabel(self.texts["optimize_prompt_label"][self.current_language])
+        self.optimize_label.setFixedWidth(80)
 
         self.optimize_prompt_edit = QLineEdit()
-        self.optimize_prompt_edit.setPlaceholderText("输入自定义优化提示词...")
+        self.optimize_prompt_edit.setPlaceholderText(self.texts["optimize_prompt_placeholder"][self.current_language])
         optimize_prompt = current_prompts.get("optimize", "")
         if optimize_prompt:
             self.optimize_prompt_edit.setText(optimize_prompt)
         self.optimize_prompt_edit.textChanged.connect(self._on_optimize_prompt_changed)
 
-        optimize_layout.addWidget(optimize_label)
+        optimize_layout.addWidget(self.optimize_label)
         optimize_layout.addWidget(self.optimize_prompt_edit)
         prompts_layout.addLayout(optimize_layout)
 
         # 增强提示词设置
         reinforce_layout = QHBoxLayout()
-        reinforce_label = QLabel("增强提示词:")
-        reinforce_label.setFixedWidth(80)
+        self.reinforce_label = QLabel(self.texts["reinforce_prompt_label"][self.current_language])
+        self.reinforce_label.setFixedWidth(80)
 
         self.reinforce_prompt_edit = QLineEdit()
-        self.reinforce_prompt_edit.setPlaceholderText("输入自定义增强提示词...")
+        self.reinforce_prompt_edit.setPlaceholderText(self.texts["reinforce_prompt_placeholder"][self.current_language])
         reinforce_prompt = current_prompts.get("reinforce", "")
         if reinforce_prompt:
             self.reinforce_prompt_edit.setText(reinforce_prompt)
@@ -353,23 +450,23 @@ class OptimizationSettingsDialog(QDialog):
             self._on_reinforce_prompt_changed
         )
 
-        reinforce_layout.addWidget(reinforce_label)
+        reinforce_layout.addWidget(self.reinforce_label)
         reinforce_layout.addWidget(self.reinforce_prompt_edit)
         prompts_layout.addLayout(reinforce_layout)
 
-        prompts_group.setLayout(prompts_layout)
-        layout.addWidget(prompts_group)
+        self.prompts_group.setLayout(prompts_layout)
+        layout.addWidget(self.prompts_group)
 
         # 按钮
         button_layout = QHBoxLayout()
-        ok_button = QPushButton("确定")
-        ok_button.clicked.connect(self.accept)
-        cancel_button = QPushButton("取消")
-        cancel_button.clicked.connect(self.reject)
+        self.ok_button = QPushButton(self.texts["ok_button"][self.current_language])
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton(self.texts["cancel_button"][self.current_language])
+        self.cancel_button.clicked.connect(self.reject)
 
-        button_layout.addWidget(ok_button)
+        button_layout.addWidget(self.ok_button)
         button_layout.addStretch()
-        button_layout.addWidget(cancel_button)
+        button_layout.addWidget(self.cancel_button)
         layout.addLayout(button_layout)
 
     def _on_optimization_toggled(self, checked):
@@ -445,8 +542,12 @@ class OptimizationSettingsDialog(QDialog):
         from PySide6.QtWidgets import QMessageBox, QProgressDialog
 
         # 显示进度对话框
-        progress = QProgressDialog("正在测试连接...", "取消", 0, 0, self)
-        progress.setWindowTitle("API连接测试")
+        progress = QProgressDialog(
+            self.texts["testing_connection"][self.current_language], 
+            self.texts["cancel_test"][self.current_language], 
+            0, 0, self
+        )
+        progress.setWindowTitle(self.texts["connection_test_title"][self.current_language])
         progress.setModal(True)
         progress.show()
 
@@ -454,7 +555,11 @@ class OptimizationSettingsDialog(QDialog):
             config = ConfigManager.get_optimizer_config()
             if not config:
                 progress.close()
-                QMessageBox.warning(self, "测试结果", "无法获取配置信息")
+                QMessageBox.warning(
+                    self, 
+                    self.texts["test_result_title"][self.current_language], 
+                    self.texts["config_unavailable"][self.current_language]
+                )
                 return
 
             _setup_project_path()
@@ -472,18 +577,32 @@ class OptimizationSettingsDialog(QDialog):
                 progress.close()
 
                 if is_valid:
-                    QMessageBox.information(self, "测试结果", "✅ 连接成功！")
+                    QMessageBox.information(
+                        self, 
+                        self.texts["test_result_title"][self.current_language], 
+                        self.texts["connection_success"][self.current_language]
+                    )
                 else:
                     QMessageBox.warning(
-                        self, "测试结果", f"❌ 连接失败: {validation_message}"
+                        self, 
+                        self.texts["test_result_title"][self.current_language], 
+                        self.texts["connection_failed"][self.current_language].format(validation_message)
                     )
             else:
                 progress.close()
-                QMessageBox.warning(self, "测试结果", f"❌ 连接失败: {message}")
+                QMessageBox.warning(
+                    self, 
+                    self.texts["test_result_title"][self.current_language], 
+                    self.texts["connection_failed"][self.current_language].format(message)
+                )
 
         except Exception as e:
             progress.close()
-            QMessageBox.critical(self, "测试错误", f"❌ 测试失败: {str(e)}")
+            QMessageBox.critical(
+                self, 
+                self.texts["test_error_title"][self.current_language], 
+                self.texts["test_failed"][self.current_language].format(str(e))
+            )
 
     def _on_optimize_prompt_changed(self):
         """优化提示词改变处理"""
@@ -507,6 +626,61 @@ class OptimizationSettingsDialog(QDialog):
         config["expression_optimizer"]["prompts"][prompt_type] = value.strip()
         ConfigManager.save_config(config, f"{prompt_type}提示词保存")
 
+    def changeEvent(self, event: QEvent):
+        """处理语言变化事件"""
+        if event.type() == QEvent.Type.LanguageChange:
+            self._update_texts()
+        super().changeEvent(event)
+
+    def _update_texts(self):
+        """根据当前语言更新显示的文本内容"""
+        self.current_language = self.settings_manager.get_current_language()
+        
+        # 更新窗口标题
+        self.setWindowTitle(self.texts["title"][self.current_language])
+        
+        # 更新控件文本
+        if hasattr(self, "enable_optimization_radio"):
+            self.enable_optimization_radio.setText(self.texts["enable_optimization"][self.current_language])
+        
+        # 更新LLM提供商组
+        if hasattr(self, "provider_group"):
+            self.provider_group.setTitle(self.texts["llm_provider_group"][self.current_language])
+        
+        # 更新API密钥相关文本
+        if hasattr(self, "api_label"):
+            self.api_label.setText(self.texts["api_key_label"][self.current_language])
+            
+        if hasattr(self, "api_key_edit"):
+            self.api_key_edit.setPlaceholderText(self.texts["api_key_placeholder"][self.current_language])
+            
+        if hasattr(self, "test_button"):
+            self.test_button.setText(self.texts["test_connection"][self.current_language])
+        
+        # 更新提示词组
+        if hasattr(self, "prompts_group"):
+            self.prompts_group.setTitle(self.texts["prompt_settings_group"][self.current_language])
+            
+        if hasattr(self, "optimize_label"):
+            self.optimize_label.setText(self.texts["optimize_prompt_label"][self.current_language])
+            
+        if hasattr(self, "reinforce_label"):
+            self.reinforce_label.setText(self.texts["reinforce_prompt_label"][self.current_language])
+        
+        # 更新提示词输入框的占位符文本
+        if hasattr(self, "optimize_prompt_edit"):
+            self.optimize_prompt_edit.setPlaceholderText(self.texts["optimize_prompt_placeholder"][self.current_language])
+            
+        if hasattr(self, "reinforce_prompt_edit"):
+            self.reinforce_prompt_edit.setPlaceholderText(self.texts["reinforce_prompt_placeholder"][self.current_language])
+            
+        # 更新按钮文本
+        if hasattr(self, "ok_button"):
+            self.ok_button.setText(self.texts["ok_button"][self.current_language])
+            
+        if hasattr(self, "cancel_button"):
+            self.cancel_button.setText(self.texts["cancel_button"][self.current_language])
+
 
 class TerminalSettingsDialog(QDialog):
     """终端设置弹窗"""
@@ -514,7 +688,32 @@ class TerminalSettingsDialog(QDialog):
     def __init__(self, settings_manager, parent=None):
         super().__init__(parent)
         self.settings_manager = settings_manager
-        self.setWindowTitle("终端设置")
+        
+        # 双语文本映射
+        self.texts = {
+            "title": {"zh_CN": "终端设置", "en_US": "Terminal Settings"},
+            "default_terminal_label": {"zh_CN": "默认终端:", "en_US": "Default Terminal:"},
+            "browse_button": {"zh_CN": "浏览...", "en_US": "Browse..."},
+            "ok_button": {"zh_CN": "确定", "en_US": "OK"},
+            "cancel_button": {"zh_CN": "取消", "en_US": "Cancel"},
+            "select_terminal_path": {"zh_CN": "选择 {0} 路径", "en_US": "Select {0} Path"},
+            "executable_files_filter": {
+                "zh_CN": "可执行文件 (*.exe);;所有文件 (*.*)",
+                "en_US": "Executable Files (*.exe);;All Files (*.*)"
+            },
+            # Terminal type names
+            "cmd_name": {"zh_CN": "命令提示符 (CMD)", "en_US": "Command Prompt (CMD)"},
+            "powershell_name": {"zh_CN": "PowerShell", "en_US": "PowerShell"},
+            "pwsh_name": {"zh_CN": "PowerShell Core", "en_US": "PowerShell Core"},
+            "git_bash_name": {"zh_CN": "Git Bash", "en_US": "Git Bash"},
+            "wsl_name": {"zh_CN": "WSL (Linux子系统)", "en_US": "WSL (Windows Subsystem for Linux)"},
+            "custom_name": {"zh_CN": "自定义终端", "en_US": "Custom Terminal"}
+        }
+        
+        # 获取当前语言
+        self.current_language = self.settings_manager.get_current_language()
+        
+        self.setWindowTitle(self.texts["title"][self.current_language])
         self.setModal(True)
         self.resize(500, 400)
         self._setup_ui()
@@ -529,7 +728,7 @@ class TerminalSettingsDialog(QDialog):
         self.terminal_manager = get_terminal_manager()
 
         # 默认终端选择标签
-        default_label = QLabel("默认终端:")
+        default_label = QLabel(self.texts["default_terminal_label"][self.current_language])
         layout.addWidget(default_label)
 
         # 创建按钮组确保互斥
@@ -547,6 +746,8 @@ class TerminalSettingsDialog(QDialog):
                 self.terminal_manager,
                 self.settings_manager,
                 self,
+                self.texts,  # Pass the texts dictionary
+                self.current_language  # Pass current language
             )
 
             # 添加到布局
@@ -564,15 +765,32 @@ class TerminalSettingsDialog(QDialog):
 
         # 按钮
         button_layout = QHBoxLayout()
-        ok_button = QPushButton("确定")
+        ok_button = QPushButton(self.texts["ok_button"][self.current_language])
         ok_button.clicked.connect(self.accept)
-        cancel_button = QPushButton("取消")
+        cancel_button = QPushButton(self.texts["cancel_button"][self.current_language])
         cancel_button.clicked.connect(self.reject)
 
         button_layout.addWidget(ok_button)
         button_layout.addStretch()
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
+
+    def changeEvent(self, event: QEvent):
+        """处理语言变化事件"""
+        if event.type() == QEvent.Type.LanguageChange:
+            self._update_texts()
+        super().changeEvent(event)
+
+    def _update_texts(self):
+        """根据当前语言更新显示的文本内容"""
+        self.current_language = self.settings_manager.get_current_language()
+        
+        # 更新窗口标题
+        self.setWindowTitle(self.texts["title"][self.current_language])
+        
+        # 更新所有终端项的文本
+        for terminal_item in self.terminal_items.values():
+            terminal_item.update_texts(self.texts, self.current_language)
 
 
 class TerminalItemWidget(QWidget):
@@ -585,6 +803,8 @@ class TerminalItemWidget(QWidget):
         terminal_manager,
         settings_manager,
         parent=None,
+        texts=None,
+        current_language="zh_CN"
     ):
         super().__init__(parent)
         self.terminal_type = terminal_type
@@ -592,6 +812,8 @@ class TerminalItemWidget(QWidget):
         self.terminal_manager = terminal_manager
         self.settings_manager = settings_manager
         self.parent_dialog = parent
+        self.texts = texts or {}
+        self.current_language = current_language
 
         # 设置固定高度，防止布局变化
         self.setFixedHeight(60)
@@ -611,12 +833,14 @@ class TerminalItemWidget(QWidget):
         first_row_layout = QHBoxLayout(first_row)
         first_row_layout.setContentsMargins(0, 0, 0, 0)
 
-        # 单选按钮
-        self.radio = QRadioButton(self.terminal_info["display_name"])
+        # 单选按钮 - 使用语言感知的显示名称
+        display_name = self._get_localized_terminal_name()
+        self.radio = QRadioButton(display_name)
         self.radio.toggled.connect(self._on_radio_changed)
 
         # 浏览按钮
-        self.browse_button = QPushButton("浏览...")
+        browse_text = self.texts.get("browse_button", {}).get(self.current_language, "浏览...")
+        self.browse_button = QPushButton(browse_text)
         self.browse_button.setFixedSize(50, 20)
         self.browse_button.setStyleSheet(
             "font-size: 8pt; padding: 2px; padding-top: -3px;"
@@ -677,6 +901,14 @@ class TerminalItemWidget(QWidget):
         self.settings_manager.set_terminal_path(self.terminal_type, text.strip())
         self.path_edit.setCursorPosition(0)  # 保持光标在开头
 
+    def _get_localized_terminal_name(self):
+        """获取本地化的终端名称"""
+        terminal_name_key = f"{self.terminal_type}_name"
+        if terminal_name_key in self.texts:
+            return self.texts[terminal_name_key][self.current_language]
+        # 回退到原始显示名称
+        return self.terminal_info.get("display_name", self.terminal_type)
+
     def _browse_path(self):
         """浏览文件路径"""
         from PySide6.QtWidgets import QFileDialog
@@ -689,11 +921,19 @@ class TerminalItemWidget(QWidget):
             else ""
         )
 
+        # 获取本地化的终端名称和对话框标题
+        display_name = self._get_localized_terminal_name()
+        select_path_text = self.texts.get("select_terminal_path", {}).get(
+            self.current_language, "选择 {0} 路径"
+        ).format(display_name)
+
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            f"选择 {self.terminal_info['display_name']} 路径",
+            select_path_text,
             start_dir,
-            "可执行文件 (*.exe);;所有文件 (*.*)",
+            self.texts.get("executable_files_filter", {}).get(
+                self.current_language, "可执行文件 (*.exe);;所有文件 (*.*)"
+            ),
         )
 
         if file_path:
@@ -710,13 +950,16 @@ class TerminalItemWidget(QWidget):
 
     def update_texts(self, texts, current_lang):
         """更新文本"""
+        self.texts = texts
+        self.current_language = current_lang
+        
+        # 更新浏览按钮文本
         if "browse_button" in texts:
             self.browse_button.setText(texts["browse_button"][current_lang])
 
         # 更新终端名称
-        terminal_name_key = f"{self.terminal_type}_name"
-        if terminal_name_key in texts:
-            self.radio.setText(texts[terminal_name_key][current_lang])
+        display_name = self._get_localized_terminal_name()
+        self.radio.setText(display_name)
 
 
 class SettingsDialog(QDialog):
@@ -755,10 +998,7 @@ class SettingsDialog(QDialog):
             # 更多设置相关文本
             "more_settings_group": {"zh_CN": "更多设置", "en_US": "More Settings"},
             "audio_settings_button": {"zh_CN": "音频", "en_US": "Audio"},
-            "optimization_settings_button": {
-                "zh_CN": "输入表达优化",
-                "en_US": "Input Optimization",
-            },
+            "optimization_settings_button": {"zh_CN": "输入表达优化", "en_US": "Input Optimization"},
             "terminal_settings_button": {"zh_CN": "终端", "en_US": "Terminal"},
             # V3.2 新增：交互模式设置
             "interaction_group": {"zh_CN": "交互模式", "en_US": "Interaction Mode"},
@@ -788,6 +1028,11 @@ class SettingsDialog(QDialog):
             "option_label": {"zh_CN": "选项", "en_US": "Option"},
             "expand_options": {"zh_CN": "展开选项设置", "en_US": "Expand Options"},
             "collapse_options": {"zh_CN": "收起选项设置", "en_US": "Collapse Options"},
+            # 占位符文本
+            "option_placeholder": {
+                "zh_CN": "输入自定义选项...",
+                "en_US": "Enter custom option..."
+            },
         }
 
         self._setup_ui()
@@ -1050,17 +1295,17 @@ class SettingsDialog(QDialog):
         layout = QHBoxLayout()
 
         # 音频设置按钮
-        self.audio_settings_button = QPushButton("音频")
+        self.audio_settings_button = QPushButton("")  # Will be set by _update_texts
         self.audio_settings_button.clicked.connect(self._open_audio_settings)
 
         # 输入表达优化设置按钮
-        self.optimization_settings_button = QPushButton("输入表达优化")
+        self.optimization_settings_button = QPushButton("")  # Will be set by _update_texts
         self.optimization_settings_button.clicked.connect(
             self._open_optimization_settings
         )
 
         # 终端设置按钮
-        self.terminal_settings_button = QPushButton("终端")
+        self.terminal_settings_button = QPushButton("")  # Will be set by _update_texts
         self.terminal_settings_button.clicked.connect(self._open_terminal_settings)
 
         layout.addWidget(self.audio_settings_button)
@@ -1186,9 +1431,10 @@ class SettingsDialog(QDialog):
         parent_layout.addWidget(self.fallback_toggle_button)
 
         # 获取当前选项 - 使用过滤后的有效选项
-        from src.interactive_feedback_server.utils import get_fallback_options
+        from src.interactive_feedback_server.utils import get_fallback_options_by_language
 
-        current_options = get_fallback_options(config)
+        # 根据当前语言获取默认选项
+        current_options = get_fallback_options_by_language(config, self.current_language)
 
         # 创建可折叠的选项容器
         self.fallback_options_container = QWidget()
@@ -1208,7 +1454,12 @@ class SettingsDialog(QDialog):
 
             # 选项标签 - 更小的字体
             option_label = QLabel("")  # 稍后设置文本
-            option_label.setFixedWidth(50)
+            # 根据语言调整标签宽度，英文需要更多空间
+            current_lang = self.current_language
+            if current_lang == "en_US":
+                option_label.setFixedWidth(70)  # 英文需要更宽
+            else:
+                option_label.setFixedWidth(50)  # 中文保持原宽度
             option_label.setStyleSheet("font-size: 9pt;")  # 小字体
             self.fallback_option_labels.append(option_label)
 
@@ -1216,6 +1467,8 @@ class SettingsDialog(QDialog):
             option_edit = QLineEdit()
             option_edit.setMaxLength(50)
             option_edit.setStyleSheet("font-size: 10pt; padding: 2px;")  # 紧凑样式
+            # 设置占位符文本
+            option_edit.setPlaceholderText(self.texts["option_placeholder"][current_lang])
             if i < len(current_options):
                 option_edit.setText(current_options[i])
 
@@ -1490,6 +1743,7 @@ class SettingsDialog(QDialog):
                 self.texts["more_settings_group"][current_lang]
             )
 
+        # 更新更多设置按钮
         if hasattr(self, "audio_settings_button"):
             self.audio_settings_button.setText(
                 self.texts["audio_settings_button"][current_lang]
@@ -1539,6 +1793,19 @@ class SettingsDialog(QDialog):
         if hasattr(self, "fallback_option_labels"):
             for i, label in enumerate(self.fallback_option_labels):
                 label.setText(f"{self.texts['option_label'][current_lang]} {i+1}:")
+                # 根据语言调整标签宽度
+                if current_lang == "en_US":
+                    label.setFixedWidth(70)  # 英文需要更宽
+                else:
+                    label.setFixedWidth(50)  # 中文保持原宽度
+
+        # 更新后备选项输入框的占位符文本
+        if hasattr(self, "fallback_option_edits"):
+            for edit in self.fallback_option_edits:
+                edit.setPlaceholderText(self.texts["option_placeholder"][current_lang])
+
+        # 刷新后备选项内容（如果自定义选项未启用，显示对应语言的默认选项）
+        self._refresh_fallback_options_for_language(current_lang)
 
         # 更新按钮文本
         if hasattr(self, "ok_button"):
@@ -1613,3 +1880,26 @@ class SettingsDialog(QDialog):
 
     def reject(self):
         super().reject()
+
+    def _refresh_fallback_options_for_language(self, language_code: str):
+        """刷新后备选项内容（如果自定义选项未启用，显示对应语言的默认选项）"""
+        if not hasattr(self, "fallback_option_edits") or not hasattr(self, "_custom_options_enabled"):
+            return
+            
+        # 如果自定义选项未启用，显示对应语言的默认选项
+        if not self._custom_options_enabled:
+            from src.interactive_feedback_server.utils import get_fallback_options_by_language, get_config
+            
+            config = get_config()
+            # 临时禁用自定义选项以获取默认选项
+            temp_config = config.copy()
+            temp_config["enable_custom_options"] = False
+            
+            default_options = get_fallback_options_by_language(temp_config, language_code)
+            
+            # 更新输入框内容
+            for i, edit in enumerate(self.fallback_option_edits):
+                if i < len(default_options):
+                    edit.setText(default_options[i])
+                else:
+                    edit.setText("")
