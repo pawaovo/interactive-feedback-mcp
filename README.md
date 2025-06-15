@@ -369,7 +369,15 @@ pip install interactive-feedback
 
 详细的故障排除指南请参阅 [安装与配置指南.md](./安装与配置指南.md#故障排除)。
 
+## English Notes
 
+- If you encounter encoding issues, you may need to add the following to the "interactive-feedback" section of `mcp.json`:
+  ```json
+  "env": {
+    "PYTHONIOENCODING": "utf-8"
+  }
+  ```
+- This ensures proper UTF-8 encoding for Python processes started by the MCP server.
 
 ## 🙏 致谢
 

@@ -79,11 +79,17 @@ class FeedbackUI(QMainWindow):
 
         # 按钮文本的双语映射
         self.button_texts = {
-            "submit_button": {"zh_CN": "提交", "en_US": "Submit"},
-            "canned_responses_button": {"zh_CN": "常用语", "en_US": "Canned Responses"},
+            "submit_button": {"zh_CN": "提交反馈", "en_US": "Submit Feedback"},
+            "canned_responses_button": {
+                "zh_CN": "常用语",
+                "en_US": "Responses",
+            },
             "select_file_button": {"zh_CN": "选择文件", "en_US": "Select Files"},
-            "screenshot_button": {"zh_CN": "窗口截图", "en_US": "Screenshot"},
-            "open_terminal_button": {"zh_CN": "启用终端", "en_US": "Open Terminal"},
+            "screenshot_button": {"zh_CN": "截图", "en_US": "Screenshot"},
+            "open_terminal_button": {
+                "zh_CN": "打开终端",
+                "en_US": "Terminal",
+            },
             "pin_window_button": {"zh_CN": "固定窗口", "en_US": "Pin Window"},
             "settings_button": {"zh_CN": "设置", "en_US": "Settings"},
             # V4.0 新增：优化按钮
@@ -122,6 +128,66 @@ class FeedbackUI(QMainWindow):
                 "zh_CN": "增强提示词效果",
                 "en_US": "Enhance prompt effectiveness",
             },
+        }
+
+        # 占位符文本的双语映射
+        self.placeholder_texts = {
+            "input_placeholder": {
+                "zh_CN": "在此输入反馈... (可拖拽文件和图片到输入框，Enter提交反馈，Shift+Enter换行，Ctrl+V复制剪切板信息)",
+                "en_US": "Enter feedback here... (Drag files and images to input box, Enter to submit, Shift+Enter for new line, Ctrl+V to paste clipboard)"
+            }
+        }
+
+        # 优化功能相关的双语文本
+        self.optimization_texts = {
+            "loading_optimize": {
+                "zh_CN": "🔄 正在优化文本，请稍候...",
+                "en_US": "🔄 Optimizing text, please wait..."
+            },
+            "loading_enhance": {
+                "zh_CN": "🔄 正在增强文本，请稍候...",
+                "en_US": "🔄 Enhancing text, please wait..."
+            },
+            "dialog_title": {
+                "zh_CN": "输入表达优化",
+                "en_US": "Input Expression Optimization"
+            },
+            "unknown_error": {
+                "zh_CN": "优化过程中出现未知问题，请稍后重试",
+                "en_US": "Unknown error occurred during optimization, please try again later"
+            },
+            "api_key_error": {
+                "zh_CN": "API密钥配置有误，请在设置中检查并更新您的API密钥",
+                "en_US": "API key configuration error, please check and update your API key in settings"
+            },
+            "rate_limit_error": {
+                "zh_CN": "请求过于频繁，请稍等片刻后再试",
+                "en_US": "Too many requests, please wait a moment and try again"
+            },
+            "timeout_error": {
+                "zh_CN": "网络连接超时，请检查网络连接后重试",
+                "en_US": "Network connection timeout, please check your connection and try again"
+            },
+            "config_error": {
+                "zh_CN": "系统配置异常，请检查设置或重启应用",
+                "en_US": "System configuration error, please check settings or restart the application"
+            },
+            "model_error": {
+                "zh_CN": "所选AI模型不可用，请在设置中选择其他模型",
+                "en_US": "Selected AI model is not available, please choose another model in settings"
+            },
+            "safety_error": {
+                "zh_CN": "输入内容被安全过滤器拦截，请修改后重试",
+                "en_US": "Input content was blocked by safety filter, please modify and try again"
+            },
+            "optimization_failed": {
+                "zh_CN": "文本优化失败，请检查网络连接和API配置",
+                "en_US": "Text optimization failed, please check network connection and API configuration"
+            },
+            "general_error": {
+                "zh_CN": "优化过程中遇到问题，请稍后重试或检查设置",
+                "en_US": "Encountered an issue during optimization, please try again later or check settings"
+            }
         }
 
         self.settings_manager = SettingsManager(self)
@@ -717,6 +783,12 @@ class FeedbackUI(QMainWindow):
         scroll_area.setWidget(desc_widget_container)
         parent_layout.addWidget(scroll_area)
 
+        # 保存引用以便后续操作（例如确保滚动位置在顶部）
+        self.description_scroll_area = scroll_area
+
+        # 修复初次加载时可能显示在内容中部的问题：窗口显示后立即滚动到顶部
+        QTimer.singleShot(0, lambda: self.description_scroll_area.verticalScrollBar().setValue(0))
+
     def _create_options_checkboxes(self, parent_layout: QVBoxLayout):
         self.option_checkboxes: list[QCheckBox] = []
         self.options_frame = QFrame()
@@ -954,8 +1026,9 @@ class FeedbackUI(QMainWindow):
 
     def _create_input_submission_area(self, parent_layout: QVBoxLayout):
         self.text_input = FeedbackTextEdit(self)
-        # 设置包含拖拽和快捷键提示的placeholder text
-        placeholder_text = "在此输入反馈... (可拖拽文件和图片到输入框，Enter提交反馈，Shift+Enter换行，Ctrl+V复制剪切板信息)"
+        # 设置包含拖拽和快捷键提示的placeholder text（语言感知）
+        current_language = self.settings_manager.get_current_language()
+        placeholder_text = self.placeholder_texts["input_placeholder"][current_language]
         self.text_input.setPlaceholderText(placeholder_text)
 
         # 连接焦点事件来动态控制placeholder显示
@@ -969,8 +1042,8 @@ class FeedbackUI(QMainWindow):
         """Creates the bottom bar with canned responses, pin, and settings buttons."""
         bottom_bar_widget = QWidget()
         bottom_layout = QHBoxLayout(bottom_bar_widget)
-        bottom_layout.setContentsMargins(0, 3, 0, 3)
-        bottom_layout.setSpacing(10)
+        bottom_layout.setContentsMargins(0, 5, 0, 5)
+        bottom_layout.setSpacing(8)  # Reduced spacing between buttons
 
         current_language = self.settings_manager.get_current_language()
 
@@ -1061,8 +1134,6 @@ class FeedbackUI(QMainWindow):
         self.optimize_button.setToolTip(
             self.tooltip_texts["optimize_button"][current_language]
         )
-        # 应用主题感知的样式
-        self._apply_optimization_button_style(self.optimize_button)
         layout.addWidget(self.optimize_button)
 
         # 增强按钮
@@ -1073,8 +1144,6 @@ class FeedbackUI(QMainWindow):
         self.enhance_button.setToolTip(
             self.tooltip_texts["enhance_button"][current_language]
         )
-        # 应用主题感知的样式
-        self._apply_optimization_button_style(self.enhance_button)
         layout.addWidget(self.enhance_button)
 
         # 初始化时立即设置正确的可见性，避免后续布局变化
@@ -1087,17 +1156,30 @@ class FeedbackUI(QMainWindow):
         current_theme = self.settings_manager.get_current_theme()
         colors = ThemeColors.get_optimization_button_colors(current_theme)
 
+        # 根据语言调整按钮尺寸
+        current_language = self.settings_manager.get_current_language()
+        if current_language == "en_US":
+            # 英文需要更宽的按钮
+            min_width = "50px"
+            max_width = "60px"
+            font_size = "10px"
+        else:
+            # 中文可以使用较小的按钮
+            min_width = "30px"
+            max_width = "30px"
+            font_size = "11px"
+
         button_style = f"""
             QPushButton#optimization_button {{
-                min-width: 30px;
-                max-width: 30px;
+                min-width: {min_width};
+                max-width: {max_width};
                 min-height: 32px;
                 max-height: 32px;
                 border-radius: 16px;
                 background-color: {colors['bg_color']};
                 color: {colors['text_color']};
                 border: 2px solid {colors['border_color']};
-                font-size: 11px;
+                font-size: {font_size};
                 font-weight: bold;
             }}
             QPushButton#optimization_button:hover {{
@@ -1910,6 +1992,13 @@ class FeedbackUI(QMainWindow):
                 self._filter_text_by_language(self.prompt, current_lang)
             )
 
+        # 更新输入框占位符文本
+        if hasattr(self, "text_input") and self.text_input:
+            # 只有在输入框为空时才更新占位符文本
+            if not self.text_input.toPlainText().strip():
+                placeholder_text = self.placeholder_texts["input_placeholder"][current_lang]
+                self.text_input.setPlaceholderText(placeholder_text)
+
         # 更新选项复选框的关联标签
         for i, checkbox in enumerate(self.option_checkboxes):
             if i < len(self.predefined_options):
@@ -2000,16 +2089,22 @@ class FeedbackUI(QMainWindow):
                 self.tooltip_texts["settings_button"].get(language_code, "打开设置面板")
             )
 
-        # 单独为提交按钮、常用语按钮和设置按钮刷新样式
-        for btn in [
-            self.submit_button,
-            self.canned_responses_button,
-            self.settings_button,
-        ]:
-            if btn:
-                btn.style().unpolish(btn)
-                btn.style().polish(btn)
-                btn.update()
+        # V4.0 新增：更新优化按钮文本
+        if hasattr(self, "optimize_button"):
+            self.optimize_button.setText(
+                self.button_texts["optimize_button"][current_language]
+            )
+            self.optimize_button.setToolTip(
+                self.tooltip_texts["optimize_button"][current_language]
+            )
+
+        if hasattr(self, "enhance_button"):
+            self.enhance_button.setText(
+                self.button_texts["enhance_button"][current_language]
+            )
+            self.enhance_button.setToolTip(
+                self.tooltip_texts["enhance_button"][current_language]
+            )
 
     def _filter_text_by_language(self, text: str, lang_code: str) -> str:
         """
@@ -2019,6 +2114,19 @@ class FeedbackUI(QMainWindow):
         - "中文 - English" 或类似分隔符
         """
         if not text or not isinstance(text, str):
+            return text
+
+        # 快速检测文本是否包含中文字符
+        has_chinese = bool(re.search(r"[\u4e00-\u9fff]", text))
+        # 快速检测文本是否包含英文单词（至少两个连续字母，以排除单个字母变量等）
+        has_english = bool(re.search(r"[A-Za-z]{2,}", text))
+
+        # 如果当前语言是中文，但文本本身几乎不包含中文，则直接返回原文本，避免误截断
+        if lang_code == "zh_CN" and not has_chinese:
+            return text
+
+        # 如果当前语言是英文，但文本本身几乎不包含中文，则直接返回原文本
+        if lang_code == "en_US" and not has_chinese:
             return text
 
         # 如果是中文模式
@@ -2049,7 +2157,7 @@ class FeedbackUI(QMainWindow):
                 return match.group(1).strip()
 
             # 如果上述格式都不匹配，检查是否包含英文单词
-            if re.search(r"[A-Za-z]{2,}", text):  # 至少包含2个连续英文字母
+            if has_english:  # 已经确认包含英文
                 return text
 
             # 可能是纯中文，那就返回原文本
@@ -2096,7 +2204,8 @@ class FeedbackUI(QMainWindow):
 
         # 如果输入框为空，恢复placeholder text
         if not self.text_input.toPlainText().strip():
-            placeholder_text = "在此输入反馈... (可拖拽文件和图片到输入框，Enter提交反馈，Shift+Enter换行，Ctrl+V复制剪切板信息)"
+            current_language = self.settings_manager.get_current_language()
+            placeholder_text = self.placeholder_texts["input_placeholder"][current_language]
             self.text_input.setPlaceholderText(placeholder_text)
 
     def _on_canned_responses_button_enter(self, event):
@@ -2738,10 +2847,16 @@ class FeedbackUI(QMainWindow):
             self.optimize_button.setEnabled(not loading)
             self.enhance_button.setEnabled(not loading)
 
+            current_language = self.settings_manager.get_current_language()
+
             if loading:
                 # 加载时显示动态提示
-                self.optimize_button.setToolTip("🔄 正在优化文本，请稍候...")
-                self.enhance_button.setToolTip("🔄 正在增强文本，请稍候...")
+                self.optimize_button.setToolTip(
+                    self.optimization_texts["loading_optimize"][current_language]
+                )
+                self.enhance_button.setToolTip(
+                    self.optimization_texts["loading_enhance"][current_language]
+                )
 
                 # 改变按钮样式以显示加载状态
                 self.optimize_button.setStyleSheet(
@@ -2752,7 +2867,6 @@ class FeedbackUI(QMainWindow):
                 )
             else:
                 # 恢复正常状态
-                current_language = self.settings_manager.get_current_language()
                 self.optimize_button.setToolTip(
                     self.tooltip_texts["optimize_button"][current_language]
                 )
@@ -2786,41 +2900,43 @@ class FeedbackUI(QMainWindow):
         将技术性错误消息转换为用户友好的提示 - V4.1 新增
         Convert technical error messages to user-friendly prompts - V4.1 New
         """
+        current_language = self.settings_manager.get_current_language()
+        
         if not error_message:
-            return "优化过程中出现未知问题，请稍后重试"
+            return self.optimization_texts["unknown_error"][current_language]
 
         # 处理常见的技术错误
         if "[ERROR:AUTH]" in error_message or "API密钥无效" in error_message:
-            return "API密钥配置有误，请在设置中检查并更新您的API密钥"
+            return self.optimization_texts["api_key_error"][current_language]
 
         if "[ERROR:RATE]" in error_message or "频率过高" in error_message:
-            return "请求过于频繁，请稍等片刻后再试"
+            return self.optimization_texts["rate_limit_error"][current_language]
 
         if "[ERROR:TIMEOUT]" in error_message or "超时" in error_message:
-            return "网络连接超时，请检查网络连接后重试"
+            return self.optimization_texts["timeout_error"][current_language]
 
         if "[配置错误]" in error_message or "导入失败" in error_message:
-            return "系统配置异常，请检查设置或重启应用"
+            return self.optimization_texts["config_error"][current_language]
 
         if (
             "[ERROR:MODEL]" in error_message
             or "模型" in error_message
             and "不存在" in error_message
         ):
-            return "所选AI模型不可用，请在设置中选择其他模型"
+            return self.optimization_texts["model_error"][current_language]
 
         if "[ERROR:SAFETY]" in error_message or "安全过滤" in error_message:
-            return "输入内容被安全过滤器拦截，请修改后重试"
+            return self.optimization_texts["safety_error"][current_language]
 
         # 处理优化失败的情况
         if "[优化失败]" in error_message:
-            return "文本优化失败，请检查网络连接和API配置"
+            return self.optimization_texts["optimization_failed"][current_language]
 
         # 如果是其他错误，提供通用的友好提示
         if error_message.startswith("[") and any(
             keyword in error_message for keyword in ["错误", "失败", "异常"]
         ):
-            return "优化过程中遇到问题，请稍后重试或检查设置"
+            return self.optimization_texts["general_error"][current_language]
 
         # 返回原始消息（如果不是错误消息）
         return error_message
@@ -2835,8 +2951,9 @@ class FeedbackUI(QMainWindow):
             if not success:
                 message = self._convert_error_to_user_friendly(message)
 
+            current_language = self.settings_manager.get_current_language()
             msg_box = QMessageBox(self)
-            msg_box.setWindowTitle("输入表达优化")
+            msg_box.setWindowTitle(self.optimization_texts["dialog_title"][current_language])
             msg_box.setText(message)
 
             if success:

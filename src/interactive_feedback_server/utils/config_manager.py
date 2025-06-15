@@ -63,12 +63,22 @@ DEFAULT_CONFIG = {
         "返回上一步",
         "暂停，让我思考一下",
     ],
+    # 英文默认选项
+    "fallback_options_en": [
+        "Okay, I understand",
+        "Please continue",
+        "Need more information",
+        "Go back to previous step",
+        "Pause, let me think",
+    ],
     "expression_optimizer": {
         "enabled": False,  # 默认禁用，用户配置 API key 后自动启用
         "active_provider": "openai",
         "prompts": {
             "optimize": "你是一个专业的文本优化助手。请将用户的输入文本改写为结构化、逻辑清晰的指令。只需要输出优化后的文本，不要包含任何技术参数、函数定义或元数据信息。",
             "reinforce": "你是一个指令执行助手。请严格按照用户提供的'强化指令'，对用户提供的'原始文本'进行处理和改写。只输出改写结果，不要包含任何技术信息。",
+            "optimize_en": "You are a professional text optimization assistant. Please rewrite the user's input text into structured, logically clear instructions. Only output the optimized text without any technical parameters, function definitions or metadata.",
+            "reinforce_en": "You are an instruction execution assistant. Please strictly process and rewrite the 'original text' according to the 'reinforcement instruction' provided by the user. Only output the rewritten result without any technical information.",
         },
         "performance": {
             "timeout_seconds": 30,
@@ -298,6 +308,50 @@ def get_fallback_options(config: Dict[str, Any] = None) -> List[str]:
 
     options = config.get("fallback_options", DEFAULT_CONFIG["fallback_options"])
     return filter_valid_options(options)
+
+
+def get_fallback_options_by_language(config: Dict[str, Any] = None, language: str = "zh_CN") -> List[str]:
+    """
+    根据语言获取后备选项列表（过滤空选项）
+    Get fallback options list by language (filter empty options)
+
+    Args:
+        config: 配置字典，如果为None则自动读取
+        language: 语言代码 ("zh_CN" 或 "en_US")
+
+    Returns:
+        List[str]: 后备选项列表（已过滤空选项）
+    """
+    if config is None:
+        config = get_config()
+
+    # 只有在明确启用自定义选项时才使用用户配置的选项
+    custom_options_enabled = config.get("enable_custom_options", False)
+    if custom_options_enabled:
+        # 根据语言选择对应的选项字段
+        if language == "en_US":
+            # 英文模式：优先使用 fallback_options_en，如果没有则使用默认英文选项
+            options = config.get("fallback_options_en", [])
+            if not options:
+                # 如果没有英文选项，使用默认英文选项
+                return DEFAULT_CONFIG["fallback_options_en"]
+        else:
+            # 中文模式：使用 fallback_options
+            options = config.get("fallback_options", [])
+            if not options:
+                # 如果没有中文选项，使用默认中文选项
+                return DEFAULT_CONFIG["fallback_options"]
+        
+        # 过滤有效选项
+        filtered = filter_valid_options(options)
+        if filtered:
+            return filtered
+     
+    # 如果自定义选项未启用或没有有效选项，根据语言返回默认选项
+    if language == "en_US":
+        return DEFAULT_CONFIG["fallback_options_en"]
+    else:
+        return DEFAULT_CONFIG["fallback_options"]
 
 
 def safe_get_fallback_options(config: Dict[str, Any] = None) -> List[str]:
