@@ -1,15 +1,22 @@
 {
-  "display_mode": "full",
+  "display_mode": "simple",
   "enable_custom_options": true,
   "fallback_options": [
-    "好",
-    "请继续",
-    "需要更多信息",
-    "null",
-    "null"
+    "Okay, I understand",
+    "Please continue",
+    "Need more information",
+    "Go back to previous step",
+    "Pause, let me think"
+  ],
+  "fallback_options_en": [
+    "Okay, I understand",
+    "Please continue",
+    "Need more information",
+    "Go back to previous step",
+    "Pause, let me think"
   ],
   "expression_optimizer": {
-    "enabled": true,
+    "enabled": false,
     "active_provider": "gemini",
     "prompts": {
       "optimize": "你是一个专业的文本优化助手。请将用户的输入文本改写为结构化、逻辑清晰的指令。只需要输出优化后的文本，不要包含任何技术参数、函数定义或元数据信息。",
@@ -48,5 +55,5 @@
   },
   "version": "3.2",
   "created_at": "2025-06-10T12:51:16.371417Z",
-  "updated_at": "2025-06-14T12:33:07.848105Z"
+  "updated_at": "2025-06-15T12:37:31.490924Z"
 }

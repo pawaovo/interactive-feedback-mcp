@@ -106,16 +106,27 @@ class FallbackOptionsStrategy(BaseOptionStrategy):
         if not context.config:
             return []
 
-        # 简化：只检查标准的fallback_options配置键
-        if "fallback_options" in context.config:
-            options = context.config["fallback_options"]
-            if isinstance(options, list):
-                # 使用公共过滤函数
-                from ..config_manager import filter_valid_options
+        # 使用语言感知的后备选项获取函数
+        # Use language-aware fallback options function
+        try:
+            from ..config_manager import get_fallback_options_by_language
+            
+            # 使用语言感知的函数获取后备选项
+            valid_options = get_fallback_options_by_language(context.config, context.language)
+            if valid_options:
+                return valid_options
+        except ImportError:
+            # 回退到原有逻辑（兼容性保证）
+            # Fallback to original logic (compatibility guarantee)
+            if "fallback_options" in context.config:
+                options = context.config["fallback_options"]
+                if isinstance(options, list):
+                    # 使用公共过滤函数
+                    from ..config_manager import filter_valid_options
 
-                valid_options = filter_valid_options(options)
-                if valid_options:
-                    return valid_options
+                    valid_options = filter_valid_options(options)
+                    if valid_options:
+                        return valid_options
 
         return []
 

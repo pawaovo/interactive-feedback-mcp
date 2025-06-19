@@ -12,9 +12,11 @@ from .config_manager import (
     validate_config,
     get_display_mode,
     get_fallback_options,
+    get_fallback_options_by_language,
     # V4.1 简化：自定义选项开关
     get_custom_options_enabled,
     set_custom_options_enabled,
+    get_feature_enabled,
 )
 from .rule_engine import (
     resolve_final_options,
@@ -46,10 +48,12 @@ __all__ = [
     "validate_config",
     "get_display_mode",
     "get_fallback_options",
+    "get_fallback_options_by_language",
     "filter_valid_options",  # 新增：公共过滤函数
     # V4.1 简化：自定义选项开关
     "get_custom_options_enabled",
     "set_custom_options_enabled",
+    "get_feature_enabled",
     # 文本处理工具 - V4.1 精简版本
     "fast_normalize_text",
     "fast_extract_keywords",

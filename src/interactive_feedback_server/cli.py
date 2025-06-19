@@ -19,7 +19,8 @@ from typing import (
     Union,
 )  # 简化导入 (Simplified imports)
 
-from fastmcp import FastMCP, Image
+from fastmcp import FastMCP
+from fastmcp.utilities.types import Image
 from pydantic import (
     Field,
 )  # Field 由 FastMCP 内部使用 (Field is used internally by FastMCP)
@@ -152,7 +153,7 @@ print(f"Server.py 启动 - Python解释器路径: {sys.executable}")
 print(f"Server.py 当前工作目录: {os.getcwd()}")
 
 
-mcp = FastMCP("Interactive Feedback MCP", log_level="ERROR")
+mcp = FastMCP("Interactive Feedback MCP")
 
 
 def launch_feedback_ui(
@@ -385,7 +386,7 @@ def optimize_user_input(
 
 
 def main():
-    """Main function to run the MCP server."""
+    """Main entry point for the MCP server"""
     mcp.run(transport="stdio")
 
 
